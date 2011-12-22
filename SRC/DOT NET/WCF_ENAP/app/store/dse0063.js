@@ -2,51 +2,32 @@ Ext.define('WCF_ENAP.model.e0063', {
     extend: 'Ext.data.Model',
     idProperty: 'ID_INFORME_PRELIMINAR',
     fields: [
-        {"name": "ID_INFORME_PRELIMINAR", "type": "int", "useNull": true },
+        { "name": "ID_INFORME_PRELIMINAR", "type": "int", "useNull": true },
         { "name": "ID_EVENTO_EMPRESA", "type": "int" },
-        { "name": "FECHA_INGRESO", "type": "date" },
-        { "name": "CLASIFICACION", "type": "int" },
-        { "name": "RUT_TRABAJADOR", "type": "string" },
-        { "name": "NOMBRES", "type": "string" },
-        { "name": "APELLIDO_MATERNO", "type": "string" },
-        { "name": "APELLIDO_PATERNO", "type": "string" },
-        { "name": "ANOS_EXPERIENCIA_CARGO", "type": "int" },
-        { "name": "ANOS_EXPERIENCIA_LABORAL", "type": "int" },
-        { "name": "ID_CARGO", "type": "int"},
-        { "name": "ID_EVENTO", "type": "int" },
-        { "name": "CAUSA_LISTA_FACTORES_CAP_FISICA_INADECUADA" },
-        { "name": "CAUSA_LISTA_FACTORES_CAP_PSICOLOGICA_INADECUADA" },
-        { "name": "CAUSA_LISTA_FATORES_AUTOCUIDADO" },
-        { "name": "CAUSA_LISTA_FATORES_CAP_MENTAL" },
-        { "name": "CAUSA_LISTA_FATORES_FALTA_CONOCIMIETO" },
-        { "name": "CAUSA_LISTA_FATORES_FALTA_HABILIDAD" },
-        { "name": "CAUSA_LISTA_FATORES_MOTIVACION_INADECUADA" },
-        { "name": "CAUSA_LISTA_FATORES_TECNCION_MENTAL" },
-        
 
-    //causa
-        { "name": "ID_CAUSA", "type": "int" },
-        { "name": "TIPO_CAUSA" },
+        { "name": "AFECTA_PERSONA", "type": "boolean" },
+        { "name": "AFECTA_PATRIMONIO", "type": "boolean" },
+        { "name": "AFECTA_PERDIDA_PROCESO", "type": "boolean" },
+        { "name": "AFECTA_MEDIO_AMBIENTE", "type": "boolean" },
+        { "name": "AFECTA_IMAGEN", "type": "boolean" },
 
-    //peligro
-        {"name": "TIPO_INCIDENTE_PERSONA_LIST" },
-        { "name": "CAUSA_INMEDIATA_ACCION_LIST" },
+        { "name": "CLASIFICACION_TRABAJADOR", "type": "int" },
+        { "name": "CLASIFICACION_PATRIMONIO", "type": "int" },
+        { "name": "CLASIFICACION_MEDIO_AMBIENTE", "type": "int" },
+        { "name": "CLASIFICACION_PERDIDA_PROCESO", "type": "int" },
+        { "name": "CLASIFICACION_IMAGEN", "type": "int" },
 
-    //causas patrimonio
-        {"name": "TIPO_INCIDENTE_PATRIMONIO_LIST" },
-        { "name": "CAUSA_INMEDIATA_ACCION_PATRIMONIO_LIST" },
-
-        { "name": "CAUSA_LISTA_FACTORES_FALTA_LIDERAZGO" },
+        { "name": "TIPO_INCIDENTE_PATRIMONIO" },
+        { "name": "TIPO_INCIDENTE_PERSONA" },
+        { "name": "CAUSA_INMEDIATA_ACCION_PATRIMONIO" },
+        { "name": "CAUSA_LISTA_FACTORES_ABUSO_MALTRATO" },
         { "name": "CAUSA_LISTA_FACTORES_ING_INADECUADA" },
-        { "name": "CAUSA_LISTA_FACTORES_COMPRAS_INADECUADAS" },
-        { "name": "CAUSA_LISTA_FACTORES_MANTENIMIENTO_INADECUADO" },
-        { "name": "CAUSA_LISTA_FACTORES_HERRAMIENTAS_INADECUADAS" },
+        { "name": "CAUSA_LISTA_FACTORES_COMPRAS_INADECUADA" },
+        { "name": "CAUSA_LISTA_FACTORES_MANTENIMIENTO_INADECUADA" },
+        { "name": "CAUSA_LISTA_FACTORES_HERR_EQUIPO_INADECUADO" },
         { "name": "CAUSA_LISTA_FACTORES_USO_DESGASTE" },
-        { "name": "CAUSA_LISTA_FACTORES_ABUSO" },
-        { "name": "CAUSA_LISTA_FACTORES_ERRORES" }
-
+        { "name": "CAUSA_LISTA_FACTORES_FALTA_LIDERAZGO" }
     ]
-
 });
 Ext.define('WCF_ENAP.store.dse0063', {
     extend: 'Ext.data.Store',
@@ -55,15 +36,15 @@ Ext.define('WCF_ENAP.store.dse0063', {
         var me = this;
         cfg = cfg || {};
         me.callParent([Ext.apply({
-            autoLoad: true,
+            autoLoad: false,
             autoSync: true,
             storeId: 'dse0063',
-            pageSize: 300,
+            pageSize: 10,
             remoteSort: true,
             model: 'WCF_ENAP.model.e0063',
             proxy: {
                 type: 'rest',
-                url: '/e0063/',
+                url: '/Evento/preliminar',
                 reader: {
                     type: 'json',
                     root: 'items',

@@ -127,8 +127,28 @@
 								    startDateField: 'startdt'
 								}
 							]
-						}
-					]
+						},
+				{
+				    xtype: 'combobox',
+				    plugins: ['clearbutton'],
+				    fieldLabel: 'MRCC',
+				    store: Ext.create('Ext.data.Store', {
+				        fields: [
+							{ "name": "ID_PROBABILIDAD", "type": "string" },
+							{ "name": "NOMBRE_PROBABILIDAD", "type": "string" }
+						],
+				        data: [
+							{ "ID_PROBABILIDAD": 'B', "NOMBRE_PROBABILIDAD": "Bajo" },
+							{ "ID_PROBABILIDAD": 'M', "NOMBRE_PROBABILIDAD": "Medio" },
+							{ "ID_PROBABILIDAD": 'A', "NOMBRE_PROBABILIDAD": "Alto" }
+						]
+				    }),
+				    displayField: 'NOMBRE_PROBABILIDAD',
+				    valueField: 'ID_PROBABILIDAD',
+				    anchor: '100%',
+				    name: 'MRCC'
+				}
+			]
 }
 		/* 
 		[/DATOS ACTIVIDAD] 
@@ -158,26 +178,30 @@
                     callback: function (records, operation, success) {
                         if (records.length == 0) {
                             Ext.MessageBox.confirm('Confirm', 'No existe ninguna Matriz con esos Datos, ¿Desea Crearla?', function (btn) {
-                                /* [CREA MATRIZ] */
-                                Ext.application({
+                                if (btn == 'yes') {
+                                    // [CREA MATRIZ]
+                                    /*
+                                    Ext.application({
                                     name: 'WCF_ENAP',
                                     stores: [],
                                     launch: function () {
-                                        Ext.QuickTips.init();
-                                        var addMatriz = Ext.create('WCF_ENAP.view.ui.EV2', {});
-                                        var winAddMatriz = Ext.create('Ext.window.Window', {
-                                            width: '600',
-                                            maximizable: true,
-                                            title: 'Ingresa una nueva Matriz',
-                                            modal: true,
-                                            items: [
-													addMatriz
-												]
-                                        });
-                                        winAddMatriz.show();
+                                    Ext.QuickTips.init();
+                                    var addMatriz = Ext.create('WCF_ENAP.view.ui.EV2', {});
+                                    var winAddMatriz = Ext.create('Ext.window.Window', {
+                                    width: '600',
+                                    maximizable: true,
+                                    title: 'Ingresa una nueva Matriz',
+                                    modal: true,
+                                    items: [
+                                    addMatriz
+                                    ]
+                                    });
+                                    winAddMatriz.show();
                                     }
-                                });
-                                /* [/CREA MATRIZ] */
+                                    });
+                                    */
+                                    // [/CREA MATRIZ]
+                                }
                             })
                         }
                     }
@@ -198,7 +222,14 @@
 		    Ext.create('Ext.ux.grid.feature.CheckGrouping', {
 		        id: 'grouping',
 		        groupHeaderTpl: '{name}',
-		        selectionMode: "SINGLE"
+		        selectionMode: "SINGLE",
+		        initComponent: function () {
+		            this.callParent(arguments);
+		            this.view.getSelectionModel().on('selectionchange', function () {
+		                console.log("CAMBIO");
+		            });
+		        }
+
 		    })
 		],
 		plugins: [
@@ -223,7 +254,7 @@
 		            if (!Ext.isDefined(rowNode.isLoaded) || rowNode.isLoaded == false) {
 		                me.setLoading(true);
 		                /* aGREGAR DS MEDIDADECONTROL */
-		                Ext.StoreManager.lookup('dsMedidaDeControl').load({
+		                Ext.StoreManager.lookup('dsMedidaDeControlByActividad').load({
 		                    params: { 'ID_ACTIVIDAD_EVALUADA': record.get('ID_ACTIVIDAD_EVALUADA') },
 		                    callback: function (records, operation, success) {
 		                        var dsRecord = me.store.getById(record.get('ID_ACTIVIDAD_EVALUADA'));
@@ -265,7 +296,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'VALORACION_PROBABILIDAD',
-					    text: 'P',
+					    text: 'Probabilidad',
 					    "field": {
 					        xtype: "combo",
 					        displayField: "NOMBRE_PROBABILIDAD",
@@ -301,7 +332,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'VALORACION_CONSECUENCIA',
-					    text: 'C',
+					    text: 'Consecuencia',
 					    "field": {
 					        "xtype": "combo",
 					        "displayField": "NOMBRE_CONSECUENCIA",
@@ -336,7 +367,7 @@
 					},
 					{
 					    xtype: 'gridcolumn',
-					    text: 'MR',
+					    text: 'Magnitud del Riesgo Puro',
 					    renderer: function (value, metaData, record, rowIndex, colIndex, store) {
 					        var indicador_riesgo = parseInt(record.get('VALORACION_CONSECUENCIA')) * parseInt(record.get('VALORACION_PROBABILIDAD'));
 					        if (indicador_riesgo < 3) {
@@ -358,7 +389,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'MEDIDA_VALORACION_PROBABILIDAD',
-					    text: 'P',
+					    text: 'Probabilidad',
 					    "field": {
 					        "xtype": "combo",
 					        "displayField": "NOMBRE_PROBABILIDAD",
@@ -394,7 +425,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'MEDIDA_VALORACION_CONSECUENCIA',
-					    text: 'C',
+					    text: 'Consecuencia',
 					    "field": {
 					        xtype: "combo",
 					        displayField: "NOMBRE_CONSECUENCIA",
@@ -429,7 +460,7 @@
 					},
 					{
 					    xtype: 'gridcolumn',
-					    text: 'MRCC',
+					    text: 'Magnitud del Riesgo con Control',
 					    renderer: function (value, metaData, record, rowIndex, colIndex, store) {
 					        var indicador_riesgo_controlado = parseInt(record.get('MEDIDA_VALORACION_CONSECUENCIA')) * parseInt(record.get('MEDIDA_VALORACION_PROBABILIDAD'));
 					        if (indicador_riesgo_controlado < 3) {
@@ -457,49 +488,104 @@
 				    items: [
 						{
 						    xtype: 'button',
-						    text: 'Exportar Seleccionadas',
-						    iconCls: 'excel-icon',
+						    text: 'Exportar Seleccionada',
+						    iconCls: 'download-icon',
 						    menu: {
 						        xtype: 'menu',
 						        items: [
-									{
-									    xtype: 'menuitem',
-									    text: 'Planilla de Reconocimiento de Riesgo',
-									    iconCls: 'matriz-icon',
-									    handler: function () {
+            {
+                xtype: 'menuitem',
+                text: 'Planilla de Reconocimiento de Riesgo',
+                iconCls: 'matriz-icon',
+                menu: {
+                    xtype: 'menu',
+                    items: [
+                        {
+                            xtype: 'menuitem',
+                            text: 'Excel',
+                            iconCls: 'excel-icon',
+                            handler: function () {
 
-									        var grid = me.down('gridpanel'),
-                                                sm = grid.getView().getFeature('grouping').getSelectionModel();
+                                var grid = me.down('gridpanel'),
+									sm = grid.getView().getFeature('grouping').getSelectionModel();
 
-									        if (sm.getCount() == 0) {
-									            Ext.Msg.alert('Advertencia', 'No ha checkeado ninguna fila');
-									            return;
-									        }
-									        var data = sm.getSelection();
-									        window.location = "/utils/Export-Planilla.aspx?ID_MATRIZ=" + data[0].get('ID_MATRIZ');
-									        Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+                                if (sm.getCount() == 0) {
+                                    Ext.Msg.alert('Advertencia', 'No ha checkeado ninguna fila');
+                                    return;
+                                }
+                                var data = sm.getSelection();
+                                window.location = "/utils/Export-Planilla.aspx?FILE_TYPE=xls&ID_MATRIZ=" + data[0].get('ID_MATRIZ');
+                                Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+                            }
+                        },
+                        {
+                            xtype: 'menuitem',
+                            text: 'PDF',
+                            iconCls: 'pdf-icon',
+                            handler: function () {
 
-									    }
-									},
-									{
-									    xtype: 'menuitem',
-									    text: 'Matriz de Riesgo',
-									    iconCls: 'matriz-icon',
-									    handler: function () {
-									        var grid = me.down('gridpanel'),
-                                                sm = grid.getView().getFeature('grouping').getSelectionModel();
+                                var grid = me.down('gridpanel'),
+									sm = grid.getView().getFeature('grouping').getSelectionModel();
 
-									        if (sm.getCount() == 0) {
-									            Ext.Msg.alert('Advertencia', 'No ha checkeado ninguna fila');
-									            return;
-									        }
-									        var data = sm.getSelection();
-									        window.location = "/utils/Export-Matriz.aspx?ID_MATRIZ=" + data[0].get('ID_MATRIZ');
-									        Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+                                if (sm.getCount() == 0) {
+                                    Ext.Msg.alert('Advertencia', 'No ha checkeado ninguna fila');
+                                    return;
+                                }
+                                var data = sm.getSelection();
+                                window.location = "/utils/Export-Planilla.aspx?FILE_TYPE=pdf&ID_MATRIZ=" + data[0].get('ID_MATRIZ');
+                                Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                xtype: 'menuitem',
+                text: 'Matriz de Riesgo',
+                iconCls: 'matriz-icon',
+                menu: {
+                    xtype: 'menu',
+                    items: [
+                        {
+                            xtype: 'menuitem',
+                            text: 'Excel',
+                            iconCls: 'excel-icon',
+                            handler: function () {
+                                var grid = me.down('gridpanel'),
+									sm = grid.getView().getFeature('grouping').getSelectionModel();
 
-									    }
-									}
-								]
+                                if (sm.getCount() == 0) {
+                                    Ext.Msg.alert('Advertencia', 'No ha checkeado ninguna fila');
+                                    return;
+                                }
+                                var data = sm.getSelection();
+                                window.location = "/utils/Export-Matriz.aspx?FILE_TYPE=xls&ID_MATRIZ=" + data[0].get('ID_MATRIZ');
+                                Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+
+                            }
+                        },
+                        {
+                            xtype: 'menuitem',
+                            text: 'PDF',
+                            iconCls: 'pdf-icon',
+                            handler: function () {
+                                var grid = me.down('gridpanel'),
+									sm = grid.getView().getFeature('grouping').getSelectionModel();
+
+                                if (sm.getCount() == 0) {
+                                    Ext.Msg.alert('Advertencia', 'No ha checkeado ninguna fila');
+                                    return;
+                                }
+                                var data = sm.getSelection();
+                                window.location = "/utils/Export-Matriz.aspx?FILE_TYPE=pdf&ID_MATRIZ=" + data[0].get('ID_MATRIZ');
+                                Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
 						    }
 						}
 					]

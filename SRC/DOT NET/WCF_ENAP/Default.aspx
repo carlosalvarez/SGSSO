@@ -11,6 +11,9 @@
     <link href="/ext-4.0.2a/resources/css/ext-all.css" rel="stylesheet" type="text/css" />
     <link href="/js/layouts/css/layout-browser.css" rel="stylesheet" type="text/css" />
     <link href="/ux/css/ClearButton.css" rel="stylesheet" type="text/css" />
+    <link href="/ux/css/ProgressColumn.css" rel="stylesheet" type="text/css" />
+    <link href="ux/css/ItemSelector.css" rel="stylesheet" type="text/css" />
+    <link href="ux/css/BoxSelect.css" rel="stylesheet" type="text/css" />
     <!-- [/CSS] -->
     <!-- [JS] -->
     <script src="/ext-4.0.2a/ext-all.js" type="text/javascript"></script>
@@ -52,8 +55,19 @@
     .add-programaanual-icon{background:transparent url(/icons/chart_organisation_add.png) 0 0 no-repeat !important;}
     .update-programaanual-icon{background:transparent url(/icons/chart_organisation.png) 0 0 no-repeat !important;}
     .excel-icon {background:transparent url(/icons/page_excel.png) 0 0 no-repeat !important;}
+    .pdf-icon {background:transparent url(/icons/page_pdf.png) 0 0 no-repeat !important;}
+    .download-icon {background:transparent url(/icons/arrow_down.png) 0 0 no-repeat !important;}
     .generator-editor-icon {background:transparent url(/icons/cog_edit.png) 0 0 no-repeat !important;}
     .informe-icon {background:transparent url(/icons/page.png) 0 0 no-repeat !important;}
+    .toggle-minus-icon {background:transparent url(/icons/bullet_toggle_minus.png) 0 0 no-repeat !important;}
+    .toggle-plus-icon {background:transparent url(/icons/bullet_toggle_plus.png) 0 0 no-repeat !important;}
+    .stack-icon{background:transparent url(/icons/page_white_stack.png) 0 0 no-repeat !important;}
+    .sum-icon{background:transparent url(/icons/sum.png) 0 0 no-repeat !important;}
+    .vcard-icon{background:transparent url(/icons/vcard.png) 0 0 no-repeat !important;}
+    .arrow_right-icon{background:transparent url(/icons/arrow_right.png) 0 0 no-repeat !important;}
+    .arrow_left-icon{background:transparent url(/icons/arrow_left.png) 0 0 no-repeat !important;}
+    .shield-icon{background:transparent url(/icons/shield.png) 0 0 no-repeat !important;}
+    .error-icon{background:transparent url(/icons/error.png) 0 0 no-repeat !important;}
     .tooltip
     {
         float: right;        

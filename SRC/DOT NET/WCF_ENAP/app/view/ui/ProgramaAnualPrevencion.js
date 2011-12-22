@@ -84,32 +84,52 @@
                     labelWidth: 120,
                     anchor: '100%'
                 }
-                , {
-                    xtype: 'gridpanel',
-                    height: 500,
-                    id: 'grid_programa_anual',
-                    columnLines: true,
-                    store: 'dsActividadProgramaAnualPrevencion',
-                    title: 'Programa Prevención de Riesgos',
-                    listeners: {
-                        'afterrender': function (cmp, opt) {
-                            cmp.doLayout();
-                        }
-                    },
-                    columns: [
+                ,
+                    {
+                        xtype: 'gridpanel',
+                        height: 500,
+                        id: 'grid_programa_anual',
+                        columnLines: true,
+                        store: 'dsActividadProgramaAnualPrevencion',
+                        title: 'Programa Prevención de Riesgos',
+                        listeners: {
+                            'afterrender': function (cmp, opt) {
+                                cmp.doLayout();
+                            }
+                        },
+                        columns: [
                     {
                         xtype: 'gridcolumn',
                         text: 'Información General',
                         columns: [
-
+                            {
+                                xtype: 'numbercolumn',
+                                dataIndex: 'CANTIDAD_FRECUENCIA',
+                                text: 'Realizar',
+                                width: 50,
+                                format: '0',
+                                editor: {
+                                    xtype: 'numberfield',
+                                    name: 'CANTIDAD_FRECUENCIA',
+                                    allowBlank: false,
+                                    anchor: '100%'
+                                }
+                            },
                             {
                                 xtype: 'gridcolumn',
                                 dataIndex: 'TIPO_FRECUENCIA',
                                 text: 'Frecuencia',
                                 renderer: function (value, metaData, record, rowIndex, colIndex, store, view) {
-                                    var arrayFrecuencia = ["Diario", "Semanal", "Mensual", "Anual"];
-                                    return record.get('CANTIDAD_FRECUENCIA') + ' ' + arrayFrecuencia[value - 1];
-
+                                    var arrayFrecuencia = ["Diario", "Semanal", "Mensual", "Anual","Semestral"];
+                                    return arrayFrecuencia[value - 1];
+                                },
+                                editor: {
+                                    xtype: 'combobox',
+                                    displayField: 'NOMBRE_FRECUENCIA',
+                                    store: 'dsFrecuencia',
+                                    valueField: 'ID_FRECUENCIA',
+                                    name: 'TIPO_FRECUENCIA',
+                                    anchor: '100%'
                                 }
                             },
                             {
@@ -117,9 +137,15 @@
                                 dataIndex: 'ID_EVIDENCIA',
                                 text: 'Evidencia',
                                 renderer: function (value, metaData, record, rowIndex, colIndex, store, view) {
-                                    var storeCargo = Ext.StoreManager.lookup('dsEvidencia');
-                                    var idx = storeCargo.find('ID_EVIDENCIA', value);
-                                    return idx !== -1 ? storeCargo.getAt(idx).get('NOMBRE_EVIDENCIA') : '';
+                                    return record.get('NOMBRE_EVIDENCIA');
+                                },
+                                editor: {
+                                    xtype: 'combobox',
+                                    name: 'ID_EVIDENCIA',
+                                    store: 'dsEvidencia',
+                                    displayField: 'NOMBRE_EVIDENCIA',
+                                    valueField: 'ID_EVIDENCIA',
+                                    anchor: '100%'
                                 }
                             },
                             {
@@ -127,9 +153,15 @@
                                 dataIndex: 'ID_CARGO',
                                 text: 'Responsable',
                                 renderer: function (value, metaData, record, rowIndex, colIndex, store, view) {
-                                    var storeCargo = Ext.StoreManager.lookup('dsCargo');
-                                    var idx = storeCargo.find('ID_CARGO', value);
-                                    return idx !== -1 ? storeCargo.getAt(idx).get('NOMBRE_CARGO') : '';
+                                    return record.get('NOMBRE_CARGO');
+                                },
+                                editor: {
+                                    xtype: 'combobox',
+                                    name: 'ID_CARGO',
+                                    store: 'dsCargo',
+                                    displayField: 'NOMBRE_CARGO',
+                                    valueField: 'ID_CARGO',
+                                    anchor: '100%'
                                 }
                             },
                             {
@@ -146,13 +178,19 @@
                             }
                         ]
                     },
-                    meses_columns
+                    meses_columns,
+                    {
+                        xtype: 'numbercolumn',
+                        dataIndex: 'TOTAL',
+                        text: 'Total',
+                        format: '0.00%'
+                    }
 
                 ],
-                    viewConfig: {
-                        stripeRows: true
-                    },
-                    plugins: [
+                        viewConfig: {
+                            stripeRows: true
+                        },
+                        plugins: [
                     Ext.create('Ext.grid.plugin.CellEditing', {
                         listeners: {
                             beforeedit: function (event, eOpts) {
@@ -167,13 +205,13 @@
                         }
                     })
                 ],
-                    features: [{
-                        id: 'groupAnual',
-                        ftype: 'groupingsummary',
-                        groupHeaderTpl: '{name}',
-                        enableGroupingMenu: false
-                    }],
-                    dockedItems: [
+                        features: [{
+                            id: 'groupAnual',
+                            ftype: 'groupingsummary',
+                            groupHeaderTpl: '{name}',
+                            enableGroupingMenu: false
+                        }],
+                        dockedItems: [
                         {
                             xtype: 'toolbar',
                             dock: 'top',
@@ -197,26 +235,40 @@
                                         record.set('OCTUBRE_E', true);
                                         record.set('NOVIEMBRE_E', true);
                                         record.set('DICIEMBRE_E', true);
-                                        winActividadProgramaAnualPrevencion = Ext.create("WCF_ENAP.view.ui.ActividadProgramaAnualPrevencion", {
-                                            recordParent: record
-                                        });
                                         var view = Ext.getCmp('grid_programa_anual').getView();
-                                        showSummary = false;
-                                        view.getFeature('groupAnual').toggleSummaryRow(showSummary);
-                                        view.refresh();
-                                        winActividadProgramaAnualPrevencion.getComponent('form_actividad_programa_anual').loadRecord(record);
-                                        winActividadProgramaAnualPrevencion.show();
+
+                                        Ext.application({
+                                            name: 'WCF_ENAP',
+                                            stores: ['dsMeses', 'dsFrecuencia', 'dsEvidencia', 'dsCargo'],
+                                            launch: function () {
+                                                Ext.QuickTips.init();
+                                                var winActividadProgramaAnualPrevencion = Ext.create('WCF_ENAP.view.ui.ActividadProgramaAnualPrevencion', {
+                                                    recordParent: record
+                                                })
+                                                winActividadProgramaAnualPrevencion.show();
+                                                showSummary = false;
+                                                view.getFeature('groupAnual').toggleSummaryRow(showSummary);
+                                                view.refresh();
+                                                winActividadProgramaAnualPrevencion.getComponent('form_actividad_programa_anual').loadRecord(record);
+                                                winActividadProgramaAnualPrevencion.show();
+                                            }
+                                        });
+
+
+
+
                                     }
                                 },
                                 {
                                     xtype: 'button',
+                                    iconCls: 'btn-delete',
                                     text: 'Remover Actividad Seleccionada',
                                     handler: function () {
                                         var view = Ext.getCmp('grid_programa_anual').getView(),
                                             summaryGroups = view.getFeature('groupAnual').summaryGroups,
                                             summaryData = view.getFeature('groupAnual').generateSummaryData(),
                                             total = [];
-                                        /* Calculo Total Avance */
+                                        // Calculo Total Avance
                                         for (var i = 0, length = summaryGroups.length; i < length; ++i) {
                                             var actividad = summaryData[summaryGroups[i].name], index = 0;
                                             for (var percent in actividad) {
@@ -239,6 +291,7 @@
                                 {
                                     tooltip: 'Click Para ocultar o Mostrar el Total Mensual de Avance',
                                     text: 'Mostrar Totales de Avance',
+                                    iconCls: 'sum-icon',
                                     handler: function () {
                                         var view = Ext.getCmp('grid_programa_anual').getView();
                                         showSummary = !showSummary;
@@ -249,10 +302,10 @@
                             ]
                         }
                     ],
-                    selModel: Ext.create('Ext.selection.RowModel', {
+                        selModel: Ext.create('Ext.selection.RowModel', {
 
-                })
-            }
+                    })
+                }
             ]
         });
 

@@ -1,4 +1,7 @@
 ﻿Ext.define('WCF_ENAP.view.ui.EventoList', {
+    requires: [
+        'Ext.ux.RowExpander'
+    ],
     extend: 'Ext.panel.Panel',
     height: 600,
     layout: {
@@ -29,14 +32,6 @@
                 try {
                     var nuevo_marker = fnCreateMarkerFromRecord(record);
                     Ext.getCmp('gmapid').addSingleMarker(nuevo_marker);
-                    /*Ext.data.StoreManager.lookup('dsGraphEventosOrganizacion').load({
-                    params: {
-                    'ANO': newValue
-                    },
-                    callback: function (records, operation, success) {
-                    Ext.getCmp('pnl_graph_incidentes_mes').setLoading(false);
-                    }
-                    });*/
                 } catch (e) { }
             }
         });
@@ -172,6 +167,15 @@
                             title: 'Listado de Incidentes Reportados',
                             id: 'grid_eventos_list',
                             columnWidth: 0.5,
+                            plugins: [
+                                {
+                                    ptype: 'rowexpander',
+                                    pluginId: 'rowexpander',
+                                    rowBodyTpl: [
+                                        '<div style="margin-left: 15px;"><div style="margin-left: 15px; float:left;">		<h3>Descripción:</h3><span style="margin-left: 15px;">{DESCRIPCION_GENERAL}</span><br /><br /></div></div><br />'
+                                    ]
+                                }
+                            ],
                             listeners: {
                                 selectionchange: function (model, records) {
                                     var rec,
@@ -340,7 +344,7 @@
                                         },
                                         {
                                             xtype: 'button',
-                                            text: 'Afecta a Trabajador',
+                                            text: 'Información del Incidente',
                                             handler: function () {
                                                 var record = Ext.getCmp('grid_eventos_list').getSelectionModel().getSelection()[0],
                                                     me = this;
@@ -348,7 +352,7 @@
                                                     name: 'WCF_ENAP',
                                                     stores:
                                                             [
-                                                                'dsTrabajador',
+                                                                'dsTrabajadorInvolucrado',
                                                                 'dsCargo',
                                                                 'dsPeligro',
                                                                 'dsCausa',
@@ -369,7 +373,7 @@
 
                                             }
                                         },
-                                        {
+                                        /*{
                                             xtype: 'button',
                                             text: 'Afecta a PATRIMONIO',
                                             handler: function () {
@@ -400,7 +404,7 @@
                                                 });
 
                                             }
-                                        },
+                                        },*/
                                         {
                                             xtype: 'button',
                                             text: 'Acciones Correctivas',

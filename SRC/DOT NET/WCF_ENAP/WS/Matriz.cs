@@ -2,6 +2,7 @@
 *Imports.
 */
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
@@ -62,10 +63,10 @@ namespace WCF_ENAP
         public JSONCollection<TBL_MATRIZ> Create(int ID_ACTIVIDAD_GENERAL, int ID_CARGO, int ID_DIVISION, int ID_ACTIVIDAD_ESPECIFICA, int ID_DEPARTAMENTO_ORGANIZACION, int ID_PELIGRO, int ID_AREA, int VALORACION_CONSECUENCIA, int VALORACION_PROBABILIDAD, int MEDIDA_VALORACION_CONSECUENCIA, int MEDIDA_VALORACION_PROBABILIDAD, int CONDICION, int[] MEDIDAS)
         {
             JSONCollection<TBL_MATRIZ> objJSON = new JSONCollection<TBL_MATRIZ>();
-            List<ActividadJSONPOST> list = (List<ActividadJSONPOST>)HttpContext.Current.Session["TempActividadEvaluada"];
+            Hashtable list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
             EnapUser user = (EnapUser)HttpContext.Current.Session["enap-log"];
            
-            if (list == null)
+            if (list == null || list.Count == 0)
             {
                 throw new Exception("No hay datos en la lista");
             }
@@ -80,7 +81,7 @@ namespace WCF_ENAP
             }
             bd.TBL_MATRIZ.InsertOnSubmit(nueva_matriz);
             bd.SubmitChanges();
-            foreach (ActividadJSONPOST nueva_actividad in list)
+            foreach (ActividadJSONPOST nueva_actividad in list.Values)
             {
                 
                 /*TBL_ACTIVIDAD_EVALUADA nuevo = new TBL_ACTIVIDAD_EVALUADA()
@@ -223,18 +224,36 @@ namespace WCF_ENAP
 		}
 
 		[WebInvoke(UriTemplate = "{id}", Method = "PUT", RequestFormat = WebMessageFormat.Json)]
-        public JSONCollection<TBL_MATRIZ> Update(string id, TBL_MATRIZ nuevo)
+        public JSONCollection<TBL_MATRIZ> Update(string id, sp_search_actividad_evaluadaResult nuevo)
 		{
-
+            Hashtable list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
+            if (list == null || list.Count == 0)
+            {
+                HttpContext.Current.Session["TempActividadEvaluada"] = new Hashtable();
+                list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
+            }
             JSONCollection<TBL_MATRIZ> objJSON = new JSONCollection<TBL_MATRIZ>();
             try
             {
                 var objeto = (from variable in bd.TBL_MATRIZ
                               where variable.ID_MATRIZ == int.Parse(id)
                               select variable).Single();
-                objeto.ID_USUARIO = nuevo.ID_USUARIO;
-				objeto.FECHA_CREACION = nuevo.FECHA_CREACION;
-                bd.SubmitChanges();
+                
+                var deleteActividades = (from variable in bd.TBL_MATRIZ_ACTIVIDAD
+                                     where variable.ID_MATRIZ == int.Parse(id)
+                                     select variable).ToList();
+                bd.TBL_MATRIZ_ACTIVIDAD.DeleteAllOnSubmit(deleteActividades);
+
+                foreach(ActividadJSONPOST updateActividad in list.Values){
+                    TBL_MATRIZ_ACTIVIDAD nueva_actividad = new TBL_MATRIZ_ACTIVIDAD() {
+                        FECHA_CREACION = DateTime.Now,
+                        ID_MATRIZ = int.Parse(id),
+                        ID_ACTIVIDAD_EVALUADA = updateActividad.ID_ACTIVIDAD_EVALUADA
+                    };
+                    bd.TBL_MATRIZ_ACTIVIDAD.InsertOnSubmit(nueva_actividad);
+                    bd.SubmitChanges();
+                }
+                HttpContext.Current.Session["TempActividadEvaluada"] = null;
                 objJSON.items = objeto;
                 objJSON.totalCount = bd.TBL_MATRIZ.Count();
                 objJSON.success = true;
