@@ -4,6 +4,7 @@ Ext.define('WCF_ENAP.model.Evento', {
     fields: [
         { "name": "ID_EVENTO", "type": "int", "useNull": true },
         { "name": "ID_DEPARTAMENTO_ORGANIZACION", "type": "int" },
+        { "name": "ID_EVENTO_EMPRESA", "type": "int" },
         { "name": "FECHA_HORA_EVENTO", "type": "string" },
         { "name": "NOMBRE_DEPARTAMENTO", "type": "string" },
         { "name": "HORA_EVENTO", "type": "string" },
@@ -12,7 +13,8 @@ Ext.define('WCF_ENAP.model.Evento', {
         { "name": "LUGAR_EXACTO", "type": "string" },
         { "name": "DESCRIPCION_GENERAL", "type": "string" },
         { "name": "COUNT_IPRELIMINAR", "type": "int" },
-        { "name": "COUNT_TRABAJADORES", "type": "int" }
+        { "name": "COUNT_TRABAJADORES", "type": "int" },
+        { "name": "AVG_CALIFICACION", "type": "int" }
     ]
 });
 Ext.define('WCF_ENAP.store.dsEvento', {

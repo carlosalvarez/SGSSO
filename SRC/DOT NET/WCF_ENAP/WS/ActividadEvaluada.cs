@@ -2,6 +2,7 @@
 *Imports.
 */
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
@@ -23,7 +24,8 @@ namespace WCF_ENAP
         public bool ESTADO;
     }
     public class ActividadJSONPOST
-    {   
+    {
+        public int ID_MATRIZ;
         public int ID_ACTIVIDAD_EVALUADA;
         public int ID_ACTIVIDAD_GENERAL;
         public int ID_ACTIVIDAD_ESPECIFICA;
@@ -40,7 +42,7 @@ namespace WCF_ENAP
         public int MEDIDA_VALORACION_CONSECUENCIA;
         public int MEDIDA_VALORACION_PROBABILIDAD;
         public int CONDICION;
-        public DateTime FECHA_CREACION;
+        public string FECHA_CREACION;
         public bool ESTADO;
     }
     public class ActividadJSONGETGROUP
@@ -100,16 +102,19 @@ namespace WCF_ENAP
                 }
                 _start = (_page * _limit) - _limit;
                 var query = bd.TBL_ACTIVIDAD_EVALUADA.Skip(_start).Take(_limit);
-                if ((_ID_PELIGRO != 0) && (_ID_DEPARTAMENTO_ORGANIZACION != 0) && (_ID_DIVISION != 0) && (_ID_AREA != 0) && (_ID_ACTIVIDAD_GENERAL != 0) && (_ID_ACTIVIDAD_ESPECIFICA != 0) && (_ID_CARGO != 0) && (_CONDICION != 0))
+                if ((_ID_PELIGRO != 0) && (_ID_DEPARTAMENTO_ORGANIZACION != 0) && (_ID_DIVISION != 0) && (_ID_ACTIVIDAD_GENERAL != 0) && (_ID_ACTIVIDAD_ESPECIFICA != 0) && (_ID_CARGO != 0) && (_CONDICION != 0))
                 {
                     query = query.Where(s => s.ID_DEPARTAMENTO_ORGANIZACION == (int)_ID_DEPARTAMENTO_ORGANIZACION 
                         && s.ID_DIVISION == (int)_ID_DIVISION
-                        && s.ID_AREA == (int)_ID_AREA
                         && s.ID_ACTIVIDAD_GENERAL == _ID_ACTIVIDAD_GENERAL
                         && s.ID_ACTIVIDAD_ESPECIFICA == _ID_ACTIVIDAD_ESPECIFICA
                         && s.ID_CARGO == _ID_CARGO
                         && s.CONDICION == _CONDICION
                         && s.ID_PELIGRO == _ID_PELIGRO);
+                    if (_ID_AREA != 0)
+                    {
+                        query = query.Where(s => s.ID_AREA == (int)_ID_AREA);
+                    }
                 }
                     query = query.OrderBy(orderBy(_sort) + " " + _dir).Select(r => r);
                     List<TBL_ACTIVIDAD_EVALUADA> results = query.ToList();
@@ -143,11 +148,12 @@ namespace WCF_ENAP
         {
             JSONCollection<ActividadJSONPOST> objJSON = new JSONCollection<ActividadJSONPOST>();
 
-            List<ActividadJSONPOST> list = (List<ActividadJSONPOST>)HttpContext.Current.Session["TempActividadEvaluada"];
-            if (list == null)
+            Hashtable list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
+            if (list == null || list.Count == 0)
             {
-                HttpContext.Current.Session["TempActividadEvaluada"] = new List<ActividadJSONPOST>();
-                list = (List<ActividadJSONPOST>)HttpContext.Current.Session["TempActividadEvaluada"];
+
+                HttpContext.Current.Session["TempActividadEvaluada"] = new Hashtable();
+                list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
             }
             TBL_ACTIVIDAD_EVALUADA nuevo = new TBL_ACTIVIDAD_EVALUADA()
             {
@@ -207,10 +213,14 @@ namespace WCF_ENAP
             json_return.MEDIDA_VALORACION_CONSECUENCIA = (int)nuevo.MEDIDA_VALORACION_CONSECUENCIA;
             json_return.MEDIDA_VALORACION_PROBABILIDAD = (int)nuevo.MEDIDA_VALORACION_PROBABILIDAD;
             json_return.CONDICION = (int)nuevo.CONDICION;
-            json_return.FECHA_CREACION = (DateTime)nuevo.FECHA_CREACION;
+            json_return.FECHA_CREACION = nuevo.FECHA_CREACION.ToString();
 
             json_return.MEDIDAS = MEDIDAS;
-            list.Add(json_return);
+            if (list.Contains(json_return.ID_ACTIVIDAD_EVALUADA))
+            {
+                list.Remove(json_return.ID_ACTIVIDAD_EVALUADA);
+            }
+            list.Add(json_return.ID_ACTIVIDAD_EVALUADA, json_return);
             objJSON.items = json_return;
             objJSON.totalCount = list.Count;
             objJSON.success = true;
@@ -286,7 +296,6 @@ namespace WCF_ENAP
             objJSON.success = true;
             return objJSON;
             */
-            throw new Exception("No Implementado");
         }
 
 		[WebGet(UriTemplate = "{id}")]
@@ -307,10 +316,55 @@ namespace WCF_ENAP
 		}
 
 		[WebInvoke(UriTemplate = "{id}", Method = "PUT", RequestFormat = WebMessageFormat.Json)]
-        public JSONCollection<TBL_ACTIVIDAD_EVALUADA> Update(string id, ActividadJSONPOST obj)
+        public ActividadJSONPOST Update(string id, ActividadJSONPOST obj)
 		{
-            throw new Exception("NO IMPLEMENTADO");
-					   
+            Hashtable list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
+            if (list == null || list.Count == 0)
+            {
+                //HttpContext.Current.Session["TempActividadEvaluada"] = new Hashtable();
+                list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
+            }
+            JSONCollection<ActividadJSONPOST> objJSON = new JSONCollection<ActividadJSONPOST>();
+            var aev = (from variable in bd.TBL_ACTIVIDAD_EVALUADA
+                          where variable.ID_ACTIVIDAD_EVALUADA == int.Parse(id)
+                          select variable).Single();
+            
+                aev.VALORACION_PROBABILIDAD = obj.VALORACION_PROBABILIDAD;
+                aev.VALORACION_CONSECUENCIA = obj.VALORACION_CONSECUENCIA;
+                aev.MEDIDA_VALORACION_PROBABILIDAD = obj.MEDIDA_VALORACION_PROBABILIDAD;
+                aev.MEDIDA_VALORACION_CONSECUENCIA = obj.MEDIDA_VALORACION_CONSECUENCIA;
+                
+                bd.SubmitChanges();
+                
+                var deleteMedidas = (from variable in bd.TBL_PELIGRO_MEDIDA
+                           where variable.ID_ACTIVIDAD_EVALUADA == int.Parse(id)
+                           select variable).ToList();
+                bd.TBL_PELIGRO_MEDIDA.DeleteAllOnSubmit(deleteMedidas);
+                bd.SubmitChanges();
+
+                for (int i = 0; i < obj.MEDIDAS.Length; i++)
+                {
+                    TBL_PELIGRO_MEDIDA nuevo_peligro_medida = new TBL_PELIGRO_MEDIDA()
+                    {
+                        ID_ACTIVIDAD_EVALUADA = aev.ID_ACTIVIDAD_EVALUADA,
+                        ID_MEDIDAS_DE_CONTROL = obj.MEDIDAS[i],
+                        FECHA_CREACION = DateTime.Now
+
+                    };
+                    bd.TBL_PELIGRO_MEDIDA.InsertOnSubmit(nuevo_peligro_medida);
+                    bd.SubmitChanges();
+                }
+                if (list.Contains(obj.ID_ACTIVIDAD_EVALUADA))
+                {
+                    list.Remove(obj.ID_ACTIVIDAD_ESPECIFICA);
+                }
+                list.Add(obj.ID_ACTIVIDAD_EVALUADA, obj);
+
+                objJSON.items = obj;
+                objJSON.totalCount = bd.TBL_NODO.Count();
+                objJSON.success = true;
+
+                return obj; 
 		}
 		
 		[WebInvoke(UriTemplate = "{id}", Method = "DELETE", RequestFormat = WebMessageFormat.Json)]
@@ -370,7 +424,7 @@ namespace WCF_ENAP
 			}
 			return "ID_ACTIVIDAD_EVALUADA";
 		}
-        [WebGet(UriTemplate = "search?page={_page}&start={_start}&limit={_limit}&sort={_sort}&dir={_dir}&ID_ORGANIZACION={_ID_ORGANIZACION}&ID_DEPARTAMENTO_ORGANIZACION={_ID_DEPARTAMENTO_ORGANIZACION}&ID_DIVISION={_ID_DIVISION}&ID_AREA={_ID_AREA}&ID_ACTIVIDAD_GENERAL={_ID_ACTIVIDAD_GENERAL}&NOM_ACTIVIDAD_ESPECIFICA={_NOM_ACTIVIDAD_ESPECIFICA}&ID_CARGO={_ID_CARGO}&CONDICION={_CONDICION}&startdt={_STARTDT}&enddt={_ENDDT}&onlyMy={_ONLYMY}")]
+        [WebGet(UriTemplate = "search?page={_page}&start={_start}&limit={_limit}&sort={_sort}&dir={_dir}&ID_ORGANIZACION={_ID_ORGANIZACION}&ID_DEPARTAMENTO_ORGANIZACION={_ID_DEPARTAMENTO_ORGANIZACION}&ID_DIVISION={_ID_DIVISION}&ID_AREA={_ID_AREA}&ID_ACTIVIDAD_GENERAL={_ID_ACTIVIDAD_GENERAL}&ID_ACTIVIDAD_ESPECIFICA={_ID_ACTIVIDAD_ESPECIFICA}&NOM_ACTIVIDAD_ESPECIFICA={_NOM_ACTIVIDAD_ESPECIFICA}&ID_CARGO={_ID_CARGO}&CONDICION={_CONDICION}&startdt={_STARTDT}&enddt={_ENDDT}&onlyMy={_ONLYMY}&MRCC={_MRCC}")]
         public JSONCollection<List<sp_search_actividad_evaluadaResult>> Search(int _page,
                                                                             int _start,
                                                                             int _limit,
@@ -381,18 +435,31 @@ namespace WCF_ENAP
                                                                             int _ID_DIVISION,
                                                                             int _ID_AREA,
                                                                             int _ID_ACTIVIDAD_GENERAL,
+                                                                            int _ID_ACTIVIDAD_ESPECIFICA,
                                                                             string _NOM_ACTIVIDAD_ESPECIFICA,
                                                                             int _ID_CARGO,
                                                                             int _CONDICION,
                                                                             string _STARTDT,
                                                                             string _ENDDT,
+                                                                            string _MRCC,
                                                                             string _ONLYMY)
         {
             JSONCollection<List<sp_search_actividad_evaluadaResult>> objJSON = new JSONCollection<List<sp_search_actividad_evaluadaResult>>();
+            HttpContext.Current.Session["TempActividadEvaluada"] = null;
+            Hashtable list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
+            if (list == null || list.Count == 0)
+            {
+                HttpContext.Current.Session["TempActividadEvaluada"] = new Hashtable();
+                list = (Hashtable)HttpContext.Current.Session["TempActividadEvaluada"];
+            }
 
             DateTime startTime;
             DateTime endTime;
-            EnapUser user = null; 
+            EnapUser user = null;
+            if (_MRCC == null || _MRCC =="")
+            {
+                _MRCC = "N";
+            }
                 if (_dir == null)
                 {
                     _dir = "DESC";
@@ -433,15 +500,63 @@ namespace WCF_ENAP
                         _ID_DIVISION,
                         _ID_AREA,
                         _ID_ACTIVIDAD_GENERAL,
+                        _ID_ACTIVIDAD_ESPECIFICA,
                         _NOM_ACTIVIDAD_ESPECIFICA,
                         _ID_CARGO,
                         _CONDICION,
                         startTime,
                         endTime,
-                        ((user!=null)?user.Username:null)
-                        ).Skip(_start).Take(_limit).OrderBy(orderBy(_sort) + " " + _dir).Select(r => r);
-                 List<sp_search_actividad_evaluadaResult> results = query.ToList < sp_search_actividad_evaluadaResult>();
+                        ((user!=null)?user.Username:null),
+                        _MRCC
+                        )
+                    .Skip(_start)
+                    .Take(_limit)
+                    .OrderBy(orderBy(_sort) + " " + _dir)
+                    .Select(r => r);
 
+                 List<sp_search_actividad_evaluadaResult> results = query.ToList < sp_search_actividad_evaluadaResult>();
+                 if (_ID_ACTIVIDAD_ESPECIFICA != 0)
+                 {
+
+                     foreach (sp_search_actividad_evaluadaResult acEv in results)
+                     {
+                         ActividadJSONPOST obj = new ActividadJSONPOST();
+                         obj.ID_MATRIZ = acEv.ID_MATRIZ;
+                         obj.ID_DEPARTAMENTO_ORGANIZACION = (int)acEv.ID_DEPARTAMENTO_ORGANIZACION;
+                         if (acEv.ID_DIVISION != 0)
+                         {
+                             obj.ID_DIVISION = (int)acEv.ID_DIVISION;
+                         }
+                         if (acEv.ID_AREA != 0)
+                         {
+                             obj.ID_AREA = (int)acEv.ID_AREA;
+                         }
+
+                         obj.ID_ACTIVIDAD_EVALUADA = acEv.ID_ACTIVIDAD_EVALUADA;
+
+                         obj.ID_ACTIVIDAD_GENERAL = (int)acEv.ID_ACTIVIDAD_GENERAL;
+                         obj.ID_CARGO = (int)acEv.ID_CARGO;
+
+                         obj.ID_ACTIVIDAD_ESPECIFICA = (int)acEv.ID_ACTIVIDAD_ESPECIFICA;
+                         obj.NOM_ACTIVIDAD_ESPECIFICA = acEv.NOM_ACTIVIDAD_ESPECIFICA;
+                         obj.ID_DEPARTAMENTO_ORGANIZACION = (int)acEv.ID_DEPARTAMENTO_ORGANIZACION;
+                         obj.ID_PELIGRO = (int)acEv.ID_PELIGRO;
+                         obj.NOM_PELIGRO = acEv.NOM_PELIGRO;
+
+                         obj.VALORACION_CONSECUENCIA = (int)acEv.VALORACION_CONSECUENCIA;
+                         obj.VALORACION_PROBABILIDAD = (int)acEv.VALORACION_PROBABILIDAD;
+                         obj.MEDIDA_VALORACION_CONSECUENCIA = (int)acEv.MEDIDA_VALORACION_CONSECUENCIA;
+                         obj.MEDIDA_VALORACION_PROBABILIDAD = (int)acEv.MEDIDA_VALORACION_PROBABILIDAD;
+                         obj.CONDICION = (int)acEv.CONDICION;
+                         obj.FECHA_CREACION = acEv.FECHA_CREACION.ToString();
+
+                         if (list.Contains(obj.ID_ACTIVIDAD_EVALUADA))
+                         {
+                             list.Remove(obj.ID_ACTIVIDAD_ESPECIFICA);
+                         }
+                         list.Add(obj.ID_ACTIVIDAD_EVALUADA, obj);
+                     }
+                 }
                     objJSON.items = results;
                     objJSON.totalCount = bd.TBL_ACTIVIDAD_EVALUADA.Count<TBL_ACTIVIDAD_EVALUADA>();
                     objJSON.success = true;

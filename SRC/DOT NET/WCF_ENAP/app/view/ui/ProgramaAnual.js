@@ -1,4 +1,8 @@
 ﻿Ext.define('WCF_ENAP.view.ui.ProgramaAnual', {
+    requires: [
+        'Ext.ux.RowExpander',
+        'Ext.ux.grid.column.ProgressColumn'
+    ],
     extend: 'Ext.panel.Panel',
     autoScroll: true,
     height: 624,
@@ -21,8 +25,11 @@
         Ext.StoreManager.lookup('dsProgramaAnual').on('datachanged', function (store, opts) {
             Ext.StoreManager.lookup('dsGraphAvanceProgramaAnual').load();
         });
-        Ext.applyIf(me, {
-            items: [
+        var groupingSummary = Ext.create('Ext.grid.feature.GroupingSummary', {
+            groupHeaderTpl: '{name}'
+        });
+    Ext.applyIf(me, {
+        items: [
             {
                 height: 170,
                 layout: 'fit',
@@ -78,7 +85,7 @@
                 }
                 ]
                     }]
-                },
+            },
                 {
                     xtype: 'panel',
                     height: 562,
@@ -93,38 +100,43 @@
                             xtype: 'gridpanel',
                             height: 400,
                             margin: '5 5 5 5',
+                            id: 'grid_programas_list',
                             title: 'Listado de Programas',
                             store: 'dsProgramaAnual',
                             columnWidth: 0.6,
                             viewConfig: {
 
                         },
+                        features: [groupingSummary],
+                        plugins: [
+                            {
+                                ptype: 'rowexpander',
+                                pluginId: 'rowexpanderprograma',
+                                rowBodyTpl: [
+                                    '<div style="margin-left: 15px;"><div style="margin-left: 15px; float:left;"><h3>Objetivo:</h3>{OBJETIVO}<br /><h3>Meta:</h3>{META}<br /></div></div>'
+                                ]
+                            }
+		                ],
                         columns: [
                                 {
                                     xtype: 'gridcolumn',
                                     dataIndex: 'NOMBRE_PROGRAMA',
                                     text: 'Nombre del Programa',
-                                    flex: 0.4
+                                    flex: 0.5
                                 },
                                 {
                                     xtype: 'gridcolumn',
                                     dataIndex: 'ID_DIVISION',
                                     text: 'División',
-                                    flex: 0.2,
+                                    flex: 0.3,
                                     renderer: function (value, metaData, record, rowIndex, colIndex, store) {
                                         return record.get('NOMBRE_DIVISION');
                                     }
                                 },
                                 {
-                                    xtype: 'gridcolumn',
-                                    dataIndex: 'OBJETIVO',
-                                    text: 'Objetivo',
-                                    flex: 0.2
-                                },
-                                {
-                                    xtype: 'gridcolumn',
-                                    dataIndex: 'META',
-                                    text: 'Meta',
+                                    xtype: 'progresscolumn',
+                                    dataIndex: 'PERCENT_TOTAL',
+                                    text: '% Avance',
                                     flex: 0.2
                                 }
                             ],
@@ -137,10 +149,23 @@
                                 }
                             ],
                         listeners: {
+                            afterrender: function (component, eOpts) {
+                                var me = this,
+                                    plugin = me.getPlugin('rowexpanderprograma'),
+                                    view = groupingSummary.view,
+                                    viewPlugin = plugin.view;
+
+                                view.on('collapsebody', function (rowNode, record, nextBd) {
+                                    me.doLayout();
+                                });
+                                view.on('expandbody', function (rowNode, record, nextBd) {
+                                    me.doLayout();
+                                });
+                            },
                             itemdblclick: function (view, record, item, index, e, options) {
                                 var idProgramaAnual = record.get("ID_PROGRAMA_ANUAL");
 
-                                
+
                                 var gridProgramaAnual = Ext.create('WCF_ENAP.view.ui.ProgramaAnualPrevencion', {
                                     recordParent: record
                                 });
@@ -337,12 +362,20 @@
                                         form;
 
                                     form = this.up('form').getForm();
-                                    new_object = Ext.create('WCF_ENAP.model.ProgramaAnual', form.getValues());
+                                    var cmbAno = this.up('panel').down('combobox').next('combobox');
+                                    var nameDivision = Ext.getCmp('txt_nombre_division_programa').getValue();
+                                    var programaName = '[' + cmbAno.getValue() + '] ' + nameDivision;
+
+                                    new_object = Ext.create('WCF_ENAP.model.ProgramaAnual', Ext.apply({ 'PROGRAMA': programaName, 'PERCENT_TOTAL': 0 }, form.getValues()));
                                     errors = new_object.validate();
 
+                                    groupingSummary.disable();
+
+                                    console.log(new_object);
                                     if (errors.isValid() && form.isValid()) {
                                         this.disable(true);
                                         Ext.data.StoreManager.lookup('dsProgramaAnual').insert(0, new_object);
+                                        groupingSummary.enable();
                                         form.reset();
                                     } else {
                                         form.markInvalid(errors);
@@ -354,8 +387,8 @@
                     ]
                 }
             ]
-        });
+    });
 
-        me.callParent(arguments);
-    }
+    me.callParent(arguments);
+}
 });

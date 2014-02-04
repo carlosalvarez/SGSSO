@@ -1,4 +1,19 @@
-﻿Ext.define('WCF_ENAP.view.ui.EV2', {
+﻿Ext.define('ActividadEvaluada', {
+    extend: 'WCF_ENAP.model.ActividadEvaluada',
+    proxy: {
+        type: 'rest',
+        url: '/ActividadEvaluada/'
+    }
+});
+Ext.define('MatrizRiesgo', {
+    extend: 'WCF_ENAP.model.MatrizRiesgo',
+    idProperty: 'ID_MATRIZ',
+    proxy: {
+        type: 'rest',
+        url: '/Matriz/'
+    }
+});
+Ext.define('WCF_ENAP.view.ui.EV2', {
     requires: [
         'Ext.ux.grid.feature.CheckGrouping',
         'Ext.ux.RowExpander'
@@ -19,6 +34,65 @@
             columnWidth: .5
         });
 
+        Ext.StoreManager.lookup('dsMatrizRiesgo').on('write', function (store, operation, options) {
+            console.log(operation.getRecords());
+            /*var record = operation.getRecords()[0],
+                name = Ext.String.capitalize(operation.action);
+            if (name == 'Create') {
+                if (record.get('ID_MATRIZ')) {
+                    var idNuevaMatriz = record.get('ID_MATRIZ');
+                    var winOk = Ext.create('Ext.window.Window', {
+                        width: 673,
+                        title: 'Agregado con éxito',
+                        modal: true,
+                        items: [
+                        {
+                            xtype: 'label',
+                            height: 14,
+                            margin: '10 10 10 10',
+                            width: 47,
+                            text: 'Se guardó la matriz con éxito, ¿ Quieres Descargar un Documento ?'
+                        },
+                        {
+                            xtype: 'panel',
+                            frame: true,
+                            margin: '5 5 5 5',
+                            layout: {
+                                type: 'column'
+                            },
+                            flex: 1,
+                            items: [
+                                {
+                                    xtype: 'button',
+                                    margin: '0 0 0 5',
+                                    text: 'Planilla de Reconocimiento de Riesgo',
+                                    columnWidth: 0.5,
+                                    iconCls: 'matriz-icon',
+                                    handler: function () {
+                                        window.location = "/utils/Export-Planilla.aspx?ID_MATRIZ=" + idNuevaMatriz;
+                                        Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+                                    }
+                                },
+                                {
+                                    xtype: 'button',
+                                    margin: '0 0 0 5',
+                                    text: 'Matriz de Riesgo',
+                                    columnWidth: 0.5,
+                                    iconCls: 'matriz-icon',
+                                    handler: function () {
+                                        window.location = "/utils/Export-Matriz.aspx?ID_MATRIZ=" + idNuevaMatriz;
+                                        Ext.Msg.alert('Advertencia', 'Espera un momento mientras se genera el documento, ésto puede tardar varios segundos.');
+                                    }
+                                }
+                            ]
+                        }
+
+                        ]
+                    });
+                    winOk.show();
+                }
+            }*/
+        });
         Ext.StoreManager.lookup('dsActividadEvaluada').on('write', function (store, operation, index, eOpts) {
             var record = operation.getRecords()[0],
                 name = Ext.String.capitalize(operation.action);
@@ -31,20 +105,25 @@
 
         me.items = [
         /* [FORMULARIO] */
+        {
+        xtype: 'hiddenfield',
+        name: 'ID_MATRIZ',
+        itemId: 'hdd_id_matriz'
+    },
 		{
-		xtype: 'panel',
-		title: 'Información Básica',
-		collapsible: true,
-		margin: '0 0 5 0',
-		layout: 'column',
-		anchor: '100%',
-		items: [
-		/* [LUGAR ACTIVIDAD] */
+		    xtype: 'form',
+		    title: 'Información Básica',
+		    collapsible: true,
+		    margin: '0 0 5 0',
+		    layout: 'column',
+		    anchor: '100%',
+		    items: [
+		    /* [LUGAR ACTIVIDAD] */
 				pnlLugar,
-		/*  	
-		[/LUGAR ACTIVIDAD]
-		[DATOS ACTIVIDAD] 
-		*/
+		    /*  	
+		    [/LUGAR ACTIVIDAD]
+		    [DATOS ACTIVIDAD] 
+		    */
 				{
 				xtype: 'panel',
 				columnWidth: 1 / 2,
@@ -176,40 +255,62 @@
 						    fieldLabel: 'Es <a class="tooltip" href="#" data-qtip="Es el tipo de actividad: <ul><li>Rutinaria.</li><li>No Rutinaria.</li><li>En situación de Emergencia.</li></ul>">[<b>?</b>]</a>',
 						    allowBlank: false,
 						    labelWidth: 150,
+						    name: 'CONDICION',
 						    items: [
                                     {
                                         xtype: 'radiofield',
-                                        name: 'CONDICION',
                                         boxLabel: 'Rutinario',
+                                        name: 'CONDICION',
                                         inputValue: 1
                                     },
                                     {
                                         xtype: 'radiofield',
-                                        name: 'CONDICION',
                                         boxLabel: 'No Rutinario',
+                                        name: 'CONDICION',
                                         inputValue: 2
                                     },
                                     {
                                         xtype: 'radiofield',
-                                        name: 'CONDICION',
                                         fieldLabel: '',
                                         boxLabel: 'Emergencia',
+                                        name: 'CONDICION',
                                         inputValue: 3
                                     }
                                 ],
 						    listeners: {
 						        change: function (field, newValue, oldValue, options) {
+						            if (field.getChecked().length == 1) {
+						                var values = this.up('panel').up('form').getValues();
+						                Ext.StoreManager.lookup('dsActividadEvaluada').load({
+						                    params: values,
+						                    callback: function (records, operation, success) {
+						                        if (records.length > 0) {
+						                            Ext.Msg.alert('Ya Existe una Matriz', 'Ya existe una matriz de riesgo evaluada para ésta información básica.');
+						                            Ext.StoreManager.lookup('dsTempActividadEvaluada').loadRecords(records);
+						                            Ext.each(records, function (record) {
+						                                var id_matriz = record.get('ID_MATRIZ');
+						                                if (id_matriz != 0) {
+						                                    me.down('#hdd_id_matriz').setValue(id_matriz);
+						                                    return;
+						                                }
+						                            });
+						                        }
+						                    }
+						                });
+						            }
+
 						            this.up('panel').up('panel').next('panel').down('combobox').setDisabled(false);
+
 						        }
 						    }
 						}
 					]
 }
-		/* 
-		[/DATOS ACTIVIDAD] 
-		*/
+		    /* 
+		    [/DATOS ACTIVIDAD] 
+		    */
 			]
-},
+		},
 
         {
             xtype: 'form',
@@ -223,11 +324,13 @@
             /* [EVALUACION PELIGRO] */
             {
             xtype: 'hiddenfield',
-            name: 'NOM_PELIGRO'
+            name: 'NOM_PELIGRO',
+            itemId: 'hdd_nombre_peligro'
         },
             {
                 xtype: 'hiddenfield',
-                name: 'ID_ACTIVIDAD_EVALUADA'
+                name: 'ID_ACTIVIDAD_EVALUADA',
+                itemId: 'hdd_actividad_evaluada_id'
             },
             {
                 xtype: 'combobox',
@@ -247,51 +350,61 @@
                         var pnlEvRiesg,
                             pnlMedida,
                             pnlReEvRiesg,
-                            formPrincipal,
                             values,
                             record;
+                        if (newValue != null) {
+                            record = this.store.getById(newValue);
 
-                        record = this.store.getById(newValue);
-
-                        formPrincipal = this.up('form');
-                        pnlPeligro = this.up('form');
-                        pnlEvRiesg = pnlPeligro.down('form');
-                        pnlMedida = pnlEvRiesg.next('gridpanel');
-                        pnlReEvRiesg = pnlMedida.next('form');
-
-                        pnlEvRiesg.setDisabled(false);
+                            pnlPeligro = this.up('form');
+                            pnlEvRiesg = pnlPeligro.down('form');
+                            pnlMedida = pnlEvRiesg.next('gridpanel');
+                            pnlReEvRiesg = pnlMedida.next('form');
 
 
-                        values = pnlPeligro.up('form').getForm().getValues();
+                            /* Reset Forms */
+                            pnlMedida.getStore().removeAll();
+                            pnlReEvRiesg.getForm().reset();
+                            pnlEvRiesg.getForm().reset();
 
-                        Ext.data.StoreManager.lookup('dsActividadEvaluada').load({
-                            url: '/ActividadEvaluada/',
-                            params: values,
-                            callback: function (records, operation, success) {
-                                if (records.length > 0) {
-                                    var record = records[0];
-                                    Ext.Msg.alert('Ya Existe una Evaluación', 'Ya existe una evaluación para éstos datos.');
+                            /* Deshabilita */
+                            pnlMedida.setDisabled(true);
+                            pnlReEvRiesg.setDisabled(true);
 
-                                    Ext.StoreManager.lookup('dsMedidaDeControl').load({
-                                        params: { 'ID_ACTIVIDAD_EVALUADA': record.get('ID_ACTIVIDAD_EVALUADA') },
-                                        callback: function (records, operation, success) {
-                                            Ext.StoreManager.lookup('dsPeligroMedida').loadRecords(records);
-                                        }
-                                    });
+                            /* SET HIDDEN FIELDS */
+                            pnlPeligro.down('#btn_add_update_actividad_evaluada').setText('Agrega Evaluación');
+                            pnlPeligro.down('#hdd_nombre_peligro').setValue(record.get('NOM_PELIGRO'));
 
-                                    pnlPeligro.loadRecord(record);
-                                    pnlEvRiesg.loadRecord(record);
-                                    pnlReEvRiesg.loadRecord(record);
+                            pnlEvRiesg.setDisabled(false);
 
-                                    pnlEvRiesg.setDisabled(false);
-                                    pnlMedida.setDisabled(false);
-                                    pnlReEvRiesg.setDisabled(false);
+                            values = pnlPeligro.up('form').getForm().getValues();
 
-                                    pnlPeligro.down('hiddenfield').setValue(record.get('NOM_PELIGRO'));
+                            Ext.data.StoreManager.lookup('dsActividadEvaluada').load({
+                                url: '/ActividadEvaluada/',
+                                params: values,
+                                callback: function (records, operation, success) {
+                                    if (records.length > 0) {
+                                        pnlPeligro.down('#btn_add_update_actividad_evaluada').setText('Actualiza y Agrega Evaluación');
+                                        var record = records[0];
+                                        Ext.Msg.alert('Ya Existe una Evaluación', 'Ya existe una evaluación para éstos datos.');
+                                        pnlPeligro.down('#hdd_actividad_evaluada_id').setValue(record.get('ID_ACTIVIDAD_EVALUADA'));
+
+                                        Ext.create('WCF_ENAP.store.dsMedidaDeControl').load({
+                                            params: { 'ID_ACTIVIDAD_EVALUADA': record.get('ID_ACTIVIDAD_EVALUADA') },
+                                            callback: function (records, operation, success) {
+                                                Ext.StoreManager.lookup('dsPeligroMedida').loadRecords(records);
+                                            }
+                                        });
+
+                                        pnlEvRiesg.loadRecord(record);
+                                        pnlReEvRiesg.loadRecord(record);
+
+                                        pnlEvRiesg.setDisabled(false);
+                                        pnlMedida.setDisabled(false);
+                                        pnlReEvRiesg.setDisabled(false);
+                                    }
                                 }
-                            }
-                        });
-                        pnlPeligro.down('hiddenfield').setValue(record.get('NOM_PELIGRO'));
+                            });
+                        }
                     }
                 }
             },
@@ -308,7 +421,7 @@
                         disabled: true,
                         margin: '3 3 3 3',
                         bodyPadding: 10,
-                        title: 'Evaluacion del Riesgo',
+                        title: 'Evaluacion del Riesgo Puro / Evaluación del Riesgo con Medidas de Control',
                         columnWidth: 1 / 3,
                         items: [
                         {
@@ -394,6 +507,7 @@
                     {
                     xtype: 'gridpanel',
                     store: 'dsPeligroMedida',
+                    itemId: 'grid_medidas_seleccionadas',
                     disabled: true,
                     height: 239,
                     margin: '3 3 3 3',
@@ -428,18 +542,18 @@
                                     iconCls: 'btn-add',
                                     handler: function () {
                                         /* [SELECT MEDIDA] */
-                                        var me = this.up('gridpanel');
-                                        me.getSelectionModel().selectAll();
+                                        var meGrid = this.up('gridpanel');
+                                        meGrid.getSelectionModel().selectAll();
+
                                         Ext.application({
                                             name: 'WCF_ENAP',
                                             stores: ['dsMedidaDeControl'],
                                             launch: function () {
                                                 Ext.QuickTips.init();
-                                                Ext.StoreManager.lookup('dsMedidaDeControl').load();
+                                                //Ext.StoreManager.lookup('dsMedidaDeControl').load();
                                                 var addMedidas = Ext.create('WCF_ENAP.view.ui.Medidas', {
-                                                    cmpPadre: me
+                                                    cmpPadre: meGrid
                                                 });
-                                                //this.getSelectionModel().select(me.cmpPadre.getSelectionModel().getSelection());
                                                 addMedidas.show();
                                             }
                                         });
@@ -470,7 +584,7 @@
                 disabled: true,
                 margin: '3 3 3 3',
                 bodyPadding: 10,
-                title: 'Re Evaluar',
+                title: 'Re Evaluar Riesgo',
                 columnWidth: 1 / 3,
                 items: [
                         {
@@ -536,40 +650,54 @@
         }
         ],
         buttons: [{
-            text: 'Guardar Evaluación',
+            xtype: 'button',
+            itemId: 'btn_add_update_actividad_evaluada',
+            text: 'Agregar Evaluación',
             iconCls: 'btn-add-save',
             handler: function () {
                 var new_object,
 					errors,
 					form,
+                    pnlPeligro,
+                    pnlEvRiesg,
+                    pnlMedida,
+                    pnlReEvRiesg,
                     grid;
 
                 grid = this.up('form').down('gridpanel');
-                form = this.up('form').up('form').getForm();
+                pnlPeligro = this.up('form');
+                pnlEvRiesg = pnlPeligro.down('form');
+                pnlMedida = pnlEvRiesg.next('gridpanel');
+                pnlReEvRiesg = pnlMedida.next('form');
+                form = pnlPeligro.up('form').getForm();
 
                 new_object = Ext.create('WCF_ENAP.model.ActividadEvaluada', Ext.apply({ "MEDIDAS": Ext.Array.map(grid.getStore().getRange(), function (model) { return model.get("ID_MEDIDAS_DE_CONTROL"); }) }, form.getValues()));
                 errors = new_object.validate();
-
                 if (errors.isValid() && form.isValid()) {
                     this.disable(true);
                     var storeActividadEvaluada = Ext.data.StoreManager.lookup('dsActividadEvaluada');
                     if (new_object.get("ID_ACTIVIDAD_EVALUADA") != null && new_object.get("ID_ACTIVIDAD_EVALUADA") != 0) {
 
-                        Ext.Ajax.request({
-                            url: '/ActividadEvaluada/' + new_object.get("ID_ACTIVIDAD_EVALUADA"),
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json; charset=utf-8'
-                            },
-                            params: Ext.JSON.encode(Ext.apply({ "MEDIDAS": Ext.Array.map(grid.getStore().getRange(), function (model) { return model.get("ID_MEDIDAS_DE_CONTROL"); }) }, form.getValues())),
-                            success: function (result, request) {
-                                console.log(result);
+                        var actividadEvaluada = Ext.create('ActividadEvaluada', Ext.apply({ "MEDIDAS": Ext.Array.map(grid.getStore().getRange(), function (model) { return model.get("ID_MEDIDAS_DE_CONTROL"); }) }, form.getValues()));
+                        actividadEvaluada.save({
+                            success: function (record) {
+                                var tmpStore = Ext.data.StoreManager.lookup('dsTempActividadEvaluada');
+                                var tmpRecord = tmpStore.getById(record.getId());
+                                if (tmpRecord) {
+                                    tmpStore.remove(tmpRecord);
+                                }
+                                tmpStore.insert(0, record);
+                                pnlPeligro.getForm().reset();
+                                pnlPeligro.down('combobox').clearValue();
+                                pnlMedida.getStore().removeAll();
                             }
                         });
-
                     } else {
                         storeActividadEvaluada.insert(0, new_object);
                         storeActividadEvaluada.sync();
+                        pnlPeligro.getForm().reset();
+                        pnlMedida.getStore().removeAll();
+                        pnlMedida.doLayout();
                     }
 
                 } else {
@@ -585,9 +713,9 @@
 		{
 		xtype: 'gridpanel',
 		collapsible: true,
-		height: 430,
 		title: 'Actividades Evaluadas',
 		anchor: '100%',
+		height: 400,
 		store: 'dsTempActividadEvaluada',
 		autoScroll: true,
 		plugins: [
@@ -595,7 +723,7 @@
                 ptype: 'rowexpander',
                 pluginId: 'rowexpander',
                 rowBodyTpl: [
-                    '<div style="margin-left: 15px; margin-bottom: 10px;"><div style="margin-left: 15px; float:left;">		<h3>Medidas de Control:</h3><ol><tpl for="MEDIDAS_NAME">			<li style="margin-left: 15px">{#}. {NOM_MEDIDA_DE_CONTROL}</li>			</tpl>		</ol>	</div></div>'
+                    '<div style="margin-left: 15px;"><div style="margin-left: 15px; float:left;">		<h3>Medidas de Control:</h3><ol><tpl for="MEDIDAS_NAME">			<li style="margin-left: 15px">{#}. {NOM_MEDIDA_DE_CONTROL}</li>			</tpl>		</ol><br />	</div></div>'
                 ]
             }
         ],
@@ -604,7 +732,9 @@
 		        var me = this,
                     plugin = component.getPlugin('rowexpander'),
                     view = plugin.view;
-
+		        this.getView().on('resize', function () {
+		            me.doLayout();
+		        });
 		        view.on('collapsebody', function (rowNode, record, nextBd) {
 		            me.doLayout();
 		        });
@@ -612,7 +742,7 @@
 		            if (!Ext.isDefined(rowNode.isLoaded) || rowNode.isLoaded == false) {
 		                me.setLoading(true);
 		                /* aGREGAR DS MEDIDADECONTROL */
-		                Ext.StoreManager.lookup('dsMedidaDeControl').load({
+		                Ext.StoreManager.lookup('dsMedidaDeControlByActividad').load({
 		                    params: { 'ID_ACTIVIDAD_EVALUADA': record.get('ID_ACTIVIDAD_EVALUADA') },
 		                    callback: function (records, operation, success) {
 		                        var dsRecord = me.store.getById(record.get('ID_ACTIVIDAD_EVALUADA'));
@@ -656,7 +786,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'VALORACION_PROBABILIDAD',
-					    text: 'P',
+					    text: 'Probabilidad',
 					    "field": {
 					        xtype: "combo",
 					        displayField: "NOMBRE_PROBABILIDAD",
@@ -692,7 +822,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'VALORACION_CONSECUENCIA',
-					    text: 'C',
+					    text: 'Consecuencia',
 					    "field": {
 					        "xtype": "combo",
 					        "displayField": "NOMBRE_CONSECUENCIA",
@@ -727,7 +857,7 @@
 					},
 					{
 					    xtype: 'gridcolumn',
-					    text: 'MR',
+					    text: 'Magnitud del Riesgo Puro',
 					    renderer: function (value, metaData, record, rowIndex, colIndex, store) {
 					        var indicador_riesgo = parseInt(record.get('VALORACION_CONSECUENCIA')) * parseInt(record.get('VALORACION_PROBABILIDAD'));
 					        if (indicador_riesgo < 3) {
@@ -749,7 +879,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'MEDIDA_VALORACION_PROBABILIDAD',
-					    text: 'P',
+					    text: 'Probabilidad',
 					    "field": {
 					        "xtype": "combo",
 					        "displayField": "NOMBRE_PROBABILIDAD",
@@ -785,7 +915,7 @@
 					{
 					    xtype: 'gridcolumn',
 					    dataIndex: 'MEDIDA_VALORACION_CONSECUENCIA',
-					    text: 'C',
+					    text: 'Consecuencia',
 					    "field": {
 					        xtype: "combo",
 					        displayField: "NOMBRE_CONSECUENCIA",
@@ -820,7 +950,7 @@
 					},
 					{
 					    xtype: 'gridcolumn',
-					    text: 'MRCC',
+					    text: 'Magnitud del Riesgo con Control',
 					    renderer: function (value, metaData, record, rowIndex, colIndex, store) {
 					        var indicador_riesgo_controlado = parseInt(record.get('MEDIDA_VALORACION_CONSECUENCIA')) * parseInt(record.get('MEDIDA_VALORACION_PROBABILIDAD'));
 					        if (indicador_riesgo_controlado < 3) {
@@ -845,8 +975,24 @@
                             text: 'Confirmar & Guardar',
                             iconCls: 'btn-save',
                             handler: function () {
-                                Ext.data.StoreManager.lookup('dsMatrizRiesgo').insert(0, {});
-                                Ext.data.StoreManager.lookup('dsTempActividadEvaluada').removeAll();
+                                var existMatriz = me.down('#hdd_id_matriz').getValue();
+                                console.log(existMatriz);
+                                if (existMatriz != null && existMatriz != 0) {
+                                    var updateMatriz = Ext.create('MatrizRiesgo', {
+                                        'ID_MATRIZ': existMatriz
+                                    });
+                                    updateMatriz.save({
+                                        success: function (record) {
+                                            Ext.data.StoreManager.lookup('dsTempActividadEvaluada').removeAll();
+                                        }
+                                    });
+
+                                } else {
+
+                                    Ext.data.StoreManager.lookup('dsMatrizRiesgo').insert(0, {});
+                                    Ext.data.StoreManager.lookup('dsTempActividadEvaluada').removeAll();
+
+                                }
                             }
                         },
                         {
